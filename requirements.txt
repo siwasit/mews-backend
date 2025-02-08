@@ -1,0 +1,5 @@
+fastapi[standard]
+fastapi
+firebase-admin
+firebase_auth
+uvicorn
