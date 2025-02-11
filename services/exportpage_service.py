@@ -33,7 +33,8 @@ async def filter(patients: PatientData):
             query = query.where("age", '==', patients['age'])
         if patients['name']:
             query = query.where("name", '==', patients['name'])
-        ...
+        if patient['lastname']:
+            query = query.where("lastname", "==", patient['lastname'])
 
         query = query.limit(10)
         patients_data = []
@@ -47,3 +48,7 @@ async def filter(patients: PatientData):
         return {"status": "Success!", "data": patients_data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post('/')
+async def get_report_excel():
+    pass
