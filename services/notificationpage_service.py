@@ -70,6 +70,7 @@ async def add_mews(patient_id: str, uid: str, data: str):
     }
     
     doc_ref = collection_ref.add(entry)
+    return doc_ref
 
 @router.post('/add_note/{patient_id}')
 async def add_notes(patient_id: str, text: str):
