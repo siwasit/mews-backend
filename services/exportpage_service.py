@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header # type: ignore
 from firebase_db import get_firestore_db
 from model import PatientData
 from fastapi.response import StreamingResponse # type: ignore
-import pandas as pd
+import pandas as pd # type: ignore
 import io
 
 router = APIRouter()

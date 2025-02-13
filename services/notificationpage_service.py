@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends, Header
+from fastapi import APIRouter, HTTPException, Depends, Header # type: ignore
 from firebase_db import get_firestore_db
 from datetime import datetime
 import json
+from model import Users, Token
 
 router = APIRouter()
 
@@ -48,7 +49,7 @@ async def time_set(uid: str, inspection_time: datetime):
     return {"message": "Inspection time updated successfully", "inspection_time": inspection_time.isoformat()}
 
 
-async def add_mews(patient_id: str, uid: str, data: str):
+async def add_mews(patient_id: str, uid: str, mews_data: MEWS):
     db = get_firestore_db()
     collection_ref = db.collection("MEWS")
 
@@ -59,13 +60,13 @@ async def add_mews(patient_id: str, uid: str, data: str):
     entry = {
         "patient_id": patient_id,
         "uid": uid,
-        "score": data["score"],
-        "heart_rate": data["heart_rate"],
-        "respiratory_rate": data["respiratory_rate"],
-        "temperature": data["temperature"],
-        "blood_pressure": data["blood_pressure"],
-        "consciousness": data["consciousness"],
-        "spo2": data["spo2"],
+        "score": mews_data["score"],
+        "heart_rate": mews_data["heart_rate"],
+        "respiratory_rate": mews_data["respiratory_rate"],
+        "temperature": mews_data["temperature"],
+        "blood_pressure": mews_data["blood_pressure"],
+        "consciousness": mews_data["consciousness"],
+        "spo2": mews_data["spo2"],
         "created_at": datetime.utcnow().isoformat()
     }
     
