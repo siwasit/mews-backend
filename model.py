@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field # type: ignore
 from datetime import datetime
+from typing import Optional
 
 class PatientData(BaseModel):
     age: str
@@ -28,6 +29,7 @@ class MEWS(BaseModel):
     temperature: str
     respiratory_rate: str
     blood_pressure: str
+    mews: str
 
 class Token(BaseModel):
     access_token: str
@@ -43,3 +45,4 @@ class InspectionsNote(BaseModel):
 class NoteRequest(BaseModel):
     text: str
     audit_by: str
+

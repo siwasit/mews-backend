@@ -7,18 +7,18 @@ import pytz
 router = APIRouter()
 
 @router.get("/")
-def get_patients(): #✅ 
+def get_patients():  # ✅ 
     # Retrieve user from Firestore
     db = get_firestore_db()  # Get Firestore DB client
     patients_ref = db.collection('patients')
     patients = patients_ref.stream()
-    
-    all_patients = []
-    for patient in patients:
-        all_patients.append({"patient_id": patient.id, "data": patient.to_dict()})
 
-    if not all_patients:
-        raise HTTPException(status_code=404, detail="No users found")
+    all_patients = []
+
+    for patient in patients:
+        patient_data = patient.to_dict()  # Convert document to dictionary
+        patient_data['patient_id'] = patient.id  # Include document ID if needed
+        all_patients.append(patient_data)
 
     return {"patients": all_patients}
 
