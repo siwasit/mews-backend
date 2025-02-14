@@ -1,12 +1,13 @@
 from fastapi import APIRouter, HTTPException, Depends, Header
 from firebase_db import get_firestore_db
 from model import PatientData, PatientUserLinks
+from datetime import datetime
+import pytz
 
 router = APIRouter()
 
 @router.get("/")
-async def get_patients():
-    
+def get_patients(): #✅ 
     # Retrieve user from Firestore
     db = get_firestore_db()  # Get Firestore DB client
     patients_ref = db.collection('patients')
@@ -22,7 +23,7 @@ async def get_patients():
     return {"patients": all_patients}
 
 @router.get("/report/{patient_id}")
-async def get_report(patient_id: str):
+def get_report(patient_id: str): #✅ 
     db = get_firestore_db()
 
     # Fetch patient data from 'patients' collection
@@ -46,17 +47,21 @@ async def get_report(patient_id: str):
         "mews_reports": mews_reports
     }
 
-@router.post("/add_patient/")
-async def add_patient(patient: PatientData):
+@router.post("/add_patient/") 
+async def add_patient(patient: PatientData): #✅
     db = get_firestore_db()
 
-    # Create a new document in 'patients' collection
-    patient_ref = db.collection("patients").add(patient.model_dump())
-    
-    return {"message": "Patient added successfully", "patient_id": patient_ref[1].id}
+    utc_now = datetime.now(pytz.utc)
+    patient_dict = patient.model_dump()
+    patient_dict["created_at"] = utc_now # Ensure created_at is added
+
+    # Add patient to Firestore
+    doc_ref = db.collection("patients").add(patient_dict)
+
+    return {"message": "Patient added successfully", "patient_id": doc_ref[1].id}
 
 @router.get("/get_patient/{patient_id}")
-async def get_patient_data(patient_id: str):
+async def get_patient_data(patient_id: str):  #✅
     db = get_firestore_db()
     
     patient_ref = db.collection("patients").document(patient_id)
@@ -69,8 +74,8 @@ async def get_patient_data(patient_id: str):
     
     return {"patient_id": patient_id, "data": patient_data}
 
-@router.put("/update_patient/{patient_id}")
-async def update_patient_data(patient_id: str, patient: PatientData):
+@router.put("/update_patient/{patient_id}") #must 'post' every attributes
+async def update_patient_data(patient_id: str, patient: PatientData):  #✅
     db = get_firestore_db()
     
     # Get the reference to the existing patient document
@@ -86,12 +91,12 @@ async def update_patient_data(patient_id: str, patient: PatientData):
     
     return {"message": "Patient updated successfully", "patient_id": patient_id}
 
-@router.get("/get-links-by-user/{uid}")
-async def get_links_by_user(uid: str):
+@router.get("/get-links-by-user/{nurse_id}")
+async def get_links_by_user(nurse_id: str): #✅
     db = get_firestore_db()
 
     # Query to fetch documents where the "uid" field matches the provided uid
-    links_ref = db.collection("patient_user_links").where("uid", "==", uid)
+    links_ref = db.collection("patient_user_links").where("nurse_id", "==", nurse_id)
     
     # Fetch the documents as a stream
     links = links_ref.stream()
@@ -106,7 +111,7 @@ async def get_links_by_user(uid: str):
     return {"message": "Links retrieved successfully", "data": all_links}
 
 @router.post("/take-in/")
-async def take_in(patient_user_link: PatientUserLinks):
+async def take_in(patient_user_link: PatientUserLinks): #✅
     db = get_firestore_db()
 
     link_ref  = db.collection("patient_user_links").add(patient_user_link.model_dump())
@@ -121,7 +126,7 @@ async def take_in(patient_user_link: PatientUserLinks):
     return {"message": "Links established successfully", "data": link_data}
 
 @router.delete("/delete-link/{link_id}")
-async def delete_link(link_id: str):
+async def delete_link(link_id: str): #✅
     db = get_firestore_db()
 
     # Get the reference to the document using the link_id
@@ -137,8 +142,8 @@ async def delete_link(link_id: str):
     else:
         raise HTTPException(status_code=404, detail="Link not found")
     
-@router.get("/get-note/{patient_id}")
-async def get_inspection_note(mews_id: str):
+@router.get("/get-note/{mews_id}")
+async def get_inspection_note(mews_id: str): #✅
     db = get_firestore_db()
 
     # Query to fetch the inspection note for the specified patient and inspection time

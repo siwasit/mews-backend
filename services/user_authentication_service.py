@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from model import Users
+from model import Users, Token
 
 SECRET_KEY = "your-secret-key"
 ALGORITHM = "HS256"

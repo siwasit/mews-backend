@@ -4,24 +4,20 @@ from datetime import datetime
 class PatientData(BaseModel):
     age: str
     bed_number: str
-    color_key: str
-    created_at: datetime = Field(default_factory=datetime)
     fullname: str
     gender: str
     hospital_number: str
-    patient_id: str
     ward: str
 
 class PatientUserLinks(BaseModel):
     patient_id: str
-    uid: str
+    user_id: str
 
 class Users(BaseModel):
     nurse_id: str
-    email: str
+    password: str 
     role: str
     fullname: str
-    ...
 
 class MEWS(BaseModel):
     mews_id: str
@@ -29,10 +25,17 @@ class MEWS(BaseModel):
     heart_rate: str
     urine: str
     spo2: str
-    created_at: datetime = Field(default_factory=datetime)
-    ...
+    temperature: str
+    respiratory_rate: str
+    blood_pressure: str
 
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class InspectionsNote(BaseModel):
+    text: str
+    mews_id: str
+    patient_id: str
+    audit_by: str
 
