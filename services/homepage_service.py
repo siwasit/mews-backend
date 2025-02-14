@@ -91,13 +91,13 @@ async def update_patient_data(patient_id: str, patient: PatientData):  #✅
     
     return {"message": "Patient updated successfully", "patient_id": patient_id}
 
-@router.get("/get-links-by-user/{nurse_id}")
-async def get_links_by_user(nurse_id: str): #✅
+@router.get("/get-links-by-user/{user_id}")
+async def get_links_by_user(user_id: str): #✅
     db = get_firestore_db()
 
     # Query to fetch documents where the "uid" field matches the provided uid
-    links_ref = db.collection("patient_user_links").where("nurse_id", "==", nurse_id)
-    
+    links_ref = db.collection("patient_user_links").where("user_id", "==", user_id)
+
     # Fetch the documents as a stream
     links = links_ref.stream()
 

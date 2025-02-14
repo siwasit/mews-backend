@@ -20,7 +20,7 @@ class Users(BaseModel):
     fullname: str
 
 class MEWS(BaseModel):
-    mews_id: str
+    patient_id: str
     consciousness: str
     heart_rate: str
     urine: str
@@ -38,4 +38,8 @@ class InspectionsNote(BaseModel):
     mews_id: str
     patient_id: str
     audit_by: str
+    time: datetime
 
+class NoteRequest(BaseModel):
+    text: str
+    audit_by: str
