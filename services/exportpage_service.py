@@ -1,11 +1,15 @@
 from fastapi import APIRouter, HTTPException, Depends, Header, BackgroundTasks # type: ignore
 from firebase_db import get_firestore_db
-from model import PatientData
+from model import PatientData, PatientIDRequest
 from fastapi.responses import StreamingResponse # type: ignore
 import pandas as pd # type: ignore
 import io
 from utils.excel_decorator import ExcelDecorator
+from utils.report_generate import generate_patient_report
+from fastapi.responses import FileResponse
 import os
+from openpyxl.styles import Border, Side
+from openpyxl import load_workbook
 
 router = APIRouter()
 
@@ -155,39 +159,80 @@ def get_report_excel(patient_id: str, background_tasks: BackgroundTasks): # ✅
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post('/get_report_excel_all') # รับ JSON ID ของผู้ป่วย ที่ Filter เบื้องต้นได้
-async def get_report_excel_all(patient_id: str):
+@router.get("/get_report_excel_all")
+def get_report_excel_all(request: PatientIDRequest, background_tasks: BackgroundTasks): # ✅
     db = get_firestore_db()
+    file_path = generate_patient_report(request.patient_ids, db)
 
-    try:
-        # Fetch patient data
-        patient_ref = db.collection('patients').document(patient_id).get()
-        if not patient_ref.exists:
-            raise HTTPException(status_code=404, detail="Patient not found")
+    wb = load_workbook(file_path)
+    thin_border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin")
+    )
+
+    # Apply borders to all sheets
+    for sheet_name in wb.sheetnames:
         
-        patient_data = patient_ref.to_dict()
-        patient_data['patient_id'] = patient_id
+        ws = wb[sheet_name]
+        ws.delete_rows(1)
 
-        # Fetch MEWS data 
-        mews_ref = db.collection('MEWS').where("patient_id", "==", patient_id)
-        mews_docs = mews_ref.stream()
-        mews_data = [doc.to_dict() for doc in mews_docs]
+        # Find the last row with content
+        last_row = ws.max_row  # This will get the last row with any content
 
-        # Combine into a DataFrame
-        patient_df = pd.DataFrame([patient_data])
-        mews_df = pd.DataFrame(mews_data)
+        # Apply borders from row 8 onwards (A8 to L) for all rows with content
+        for row in range(7, last_row + 1):  # Start from row 8
+            for col in range(1, 13):  # Columns A (1) to L (12)
+                cell = ws.cell(row=row, column=col)
+                cell.border = thin_border
 
-        # Merge data
-        report_df = pd.concat([patient_df, mews_df], ignore_index=True)
+    # Save the workbook after applying the decoration
+    wb.save(file_path)
 
-        # Convert to Excel file in memory
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            report_df.to_excel(writer, index=False, sheet_name="Report")
+    if not os.path.exists(file_path):
+        return {"error": "File not found"}
+    
+    # Open the file and stream it using a context manager
+    def iter_file():
+        with open(file_path, mode="rb") as file:
+            yield from file
+    
+    # Add delete task to background after streaming completes
+    background_tasks.add_task(delete_file, file_path)
 
-        output.seek(0)
+    return StreamingResponse(iter_file(), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename={os.path.basename(file_path)}"})
+    # return FileResponse(file_path, filename="patient_report.xlsx", media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    # try:
+    #     all_data = []
+    #     for patient in patients:
+    #     # Fetch patient data
+    #         patient_ref = db.collection('patients').document(patient_id).get()
+    #         if not patient_ref.exists:
+    #             continue
+    #         patient_data = patient_ref.to_dict()
+    #         patient_data['patient_id'] = patient_id
 
-        return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                 headers={"Content-Disposition": "attachment; filename=patient_report.xlsx"})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    #         # Fetch MEWS data 
+    #         mews_ref = db.collection('MEWS').where("patient_id", "==", patient_id)
+    #         mews_docs = mews_ref.stream()
+    #         mews_data = [doc.to_dict() for doc in mews_docs]
+
+    #         # Combine into a DataFrame
+    #         patient_df = pd.DataFrame([patient_data])
+    #         mews_df = pd.DataFrame(mews_data)
+
+    #         # Merge data
+    #         report_df = pd.concat([patient_df, mews_df], ignore_index=True)
+
+    #         # Convert to Excel file in memory
+    #         output = io.BytesIO()
+    #         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+    #             report_df.to_excel(writer, index=False, sheet_name="Report")
+
+    #         output.seek(0)
+
+    #     return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    #                              headers={"Content-Disposition": "attachment; filename=patient_report.xlsx"})
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))

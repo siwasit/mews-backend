@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field # type: ignore
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class PatientData(BaseModel):
     age: str
@@ -46,3 +46,5 @@ class NoteRequest(BaseModel):
     text: str
     audit_by: str
 
+class PatientIDRequest(BaseModel):
+    patient_ids: List[str]  # Expecting a list of patient_id values
