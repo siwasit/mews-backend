@@ -6,18 +6,27 @@ import bcrypt
 import firebase_admin
 from firebase_admin import credentials
 from model import Users, UserAuth, CustomToken
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load environment variables from .env file
+
+# Fetch the correct environment variable
+firebase_key_path = os.getenv("FIREBASE_ADMINSDK")
+
+if firebase_key_path is None:
+    raise ValueError("FIREBASE_ADMINSDK environment variable not set!")
 
 # Initialize Firebase
 # ✅ Load Firebase credentials
-cred_path = "mews-project-firebase-adminsdk-fbsvc-1730ff6a5b.json"
-firebase_cred = credentials.Certificate(cred_path)
+firebase_cred = credentials.Certificate(firebase_key_path)
 firebase_admin.initialize_app(firebase_cred)
 
 app = FastAPI()
 router = APIRouter()
 
 # ✅ Load Firestore credentials separately
-firestore_credentials = service_account.Credentials.from_service_account_file(cred_path)
+firestore_credentials = service_account.Credentials.from_service_account_file(firebase_key_path)
 db = firestore.Client(credentials=firestore_credentials)  # ✅ Fix
 
 SESSION_EXPIRE_TIME = 60 * 60 * 24 * 7  # 7 days in seconds
