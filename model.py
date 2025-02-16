@@ -48,3 +48,11 @@ class NoteRequest(BaseModel):
 
 class PatientIDRequest(BaseModel):
     patient_ids: List[str]  # Expecting a list of patient_id values
+
+
+class UserAuth(BaseModel):
+    uid: str  # Firebase UID
+    password: str  # Plaintext password
+
+class CustomToken(BaseModel):
+    id_token: str  # Plaintext password

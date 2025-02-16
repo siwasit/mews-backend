@@ -1,12 +1,13 @@
 from fastapi import FastAPI, HTTPException, Header, Depends
 # from firebase_auth import verify_firebase_token  # Firebase authentication
 # from firebase_db import db, add_data, get_data, get_all_data, update_data, delete_data
-from services import exportpage_service, homepage_service, notificationpage_service, settingpage_service
+from services import exportpage_service, homepage_service, notificationpage_service, settingpage_service, user_authentication_service
 import uuid
 
 app = FastAPI()
 
 app.include_router(homepage_service.router, prefix="/home-fetch", tags=["home"])
+app.include_router(user_authentication_service.router, prefix="/authenticate", tags=["authenticate"])
 app.include_router(notificationpage_service.router, prefix="/noti-fetch", tags=["notification"])
 app.include_router(exportpage_service.router, prefix="/expt-fetch", tags=["export"])
 app.include_router(settingpage_service.router, prefix="/sett-fetch", tags=["setting"])
