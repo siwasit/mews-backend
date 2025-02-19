@@ -39,12 +39,23 @@ def get_report(patient_id: str): #✅
     mews_ref = db.collection('mews').where("patient_id", "==", patient_id)
     mews_docs = mews_ref.stream()
 
-    mews_reports = [doc.to_dict() for doc in mews_docs]
+    # Fetch related reports from 'mews' collection
+    note_ref = db.collection('inspection_notes').where("patient_id", "==", patient_id)
+    note_docs = note_ref.stream()
+
+    mews_reports = [{"mews_id": doc.id, **doc.to_dict()} for doc in mews_docs]
+    note_reports = [doc.to_dict() for doc in note_docs]
+    # Convert note_reports into a dictionary where mews_id is the key
+    note_dict = {note["mews_id"]: note for note in note_reports if "mews_id" in note}
+
+    # Merge mews_reports with corresponding note_reports based on mews_id
+    full_reports = [{**mews, **note_dict.get(mews["mews_id"], {})} for mews in mews_reports]
+
 
     return {
         "patient_id": patient_id,
         "patient_info": patient_data,
-        "mews_reports": mews_reports
+        "full_reports": full_reports,
     }
 
 @router.post("/add_patient/") 
@@ -139,6 +150,23 @@ async def delete_link(link_id: str): #✅
         # Delete the document
         link_ref.delete()
         return {"message": "Link deleted successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="Link not found")
+    
+@router.delete("/delete-patient/{patient_id}")
+async def delete_link(patient_id: str): #✅
+    db = get_firestore_db()
+
+    # Get the reference to the document using the patient_id
+    patient_ref = db.collection("patients").document(patient_id)
+    
+    # Check if the document exists before attempting to delete it
+    link_doc = patient_ref.get()
+
+    if link_doc.exists:
+        # Delete the document
+        patient_ref.delete()
+        return {"message": "Patient deleted successfully"}
     else:
         raise HTTPException(status_code=404, detail="Link not found")
     

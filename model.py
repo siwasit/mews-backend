@@ -20,7 +20,7 @@ class Users(BaseModel):
     role: str
     fullname: str
 
-class MEWS(BaseModel):
+class MEWSHandling(BaseModel):
     patient_id: str
     consciousness: str
     heart_rate: str
@@ -36,8 +36,6 @@ class Token(BaseModel):
     token_type: str
 
 class InspectionsNote(BaseModel):
-    text: str
-    mews_id: str
     patient_id: str
     audit_by: str
     time: datetime

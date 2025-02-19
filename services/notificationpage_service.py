@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Header # type: ignore
 from firebase_db import get_firestore_db
 from datetime import datetime
 import json
-from model import MEWS, InspectionsNote, NoteRequest
+from model import MEWSHandling, InspectionsNote, NoteRequest
 
 router = APIRouter()
 
@@ -54,37 +54,19 @@ async def time_set(inspection_time: InspectionsNote): #✅
 
     return {"message": "inspection_notes added successfully", "inspection_notes_id": doc_ref[1].id}
 
-@router.post('/add_mews')
-async def add_mews(mews_data: MEWS): #✅
+@router.post('/add_mews/{inspection_id}')
+async def add_mews(mews_data: MEWSHandling, inspection_id: str):  # ✅
     db = get_firestore_db()
 
-    mews_add = mews_data.model_dump()
-
     # Add patient to Firestore
-    doc_ref = db.collection("mews").add(mews_add)
+    mew_ref = db.collection("mews").add(mews_data.model_dump())
 
-    return {"message": "mews_data added successfully", "mews_id": doc_ref[1].id}
+    # Use the original data to set inspection_notes
+    note_ref = db.collection("inspection_notes").document(inspection_id)
+    note_ref.update({"mews_id": mew_ref[1].id})
 
-    # required_fields = {"mews_score", "heart_rate", "respiratory_rate", "temperature", "blood_pressure", "consciousness", "spo2", "urine"}
-    # if not required_fields.issubset(mews_data.keys()):
-    #     raise HTTPException(status_code=400, detail=json.dumps({"error": f"Missing required fields: {list(required_fields - mews_data.keys())}"}))
-    
-    # entry = {
-    #     "patient_id": patient_id,
-    #     "uid": uid,
-    #     "score": mews_data["score"],
-    #     "heart_rate": mews_data["heart_rate"],
-    #     "respiratory_rate": mews_data["respiratory_rate"],
-    #     "temperature": mews_data["temperature"],
-    #     "blood_pressure": mews_data["blood_pressure"],
-    #     "consciousness": mews_data["consciousness"],
-    #     "spo2": mews_data["spo2"],
-    #     "urine": mews_data['urine'],
-    #     "created_at": datetime.now().isoformat()
-    # }
-    
-    # doc_ref = collection_ref.add(entry)
-    # return doc_ref
+    return {"message": "mews_data added successfully", "mews_id": mew_ref[1].id}
+
 
 @router.post('/add_notes/{note_id}')
 async def add_notes(note_id: str, note: NoteRequest): #✅
