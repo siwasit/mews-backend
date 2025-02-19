@@ -30,6 +30,7 @@ class MEWSHandling(BaseModel):
     respiratory_rate: str
     blood_pressure: str
     mews: str
+    cvp: str
 
 class Token(BaseModel):
     access_token: str
