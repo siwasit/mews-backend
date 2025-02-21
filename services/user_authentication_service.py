@@ -29,7 +29,8 @@ router = APIRouter()
 firestore_credentials = service_account.Credentials.from_service_account_file(firebase_key_path)
 db = firestore.Client(credentials=firestore_credentials)  # ✅ Fix
 
-SESSION_EXPIRE_TIME = 60 * 60 * 24 * 7  # 7 days in seconds
+# SESSION_EXPIRE_TIME = 60 * 60 * 24 * 7  # 7 days in seconds
+SESSION_EXPIRE_TIME = 300
 
 def hash_password(password: str):
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -83,57 +84,39 @@ async def login(user_auth: UserAuth, response: Response):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# @router.post("/login")
-# async def login(user_auth: UserAuth, response: Response):
-#     try:
-#         # Step 1: Authenticate the user using UID and password
-#         user_doc = db.collection("users").document(user_auth.uid).get()
-        
-#         # Check if the user exists in Firestore
-#         if not user_doc.exists:
-#             raise HTTPException(status_code=404, detail="User not found")
-        
-#         user = user_doc.to_dict()
-#         print(user)
+@router.post("/verify_session_cookie")
+async def verify_session_cookie(session_token: CustomToken):
+    session_cookie = session_token.id_token
+    if not session_cookie:
+        raise HTTPException(status_code=401, detail="Unauthorized: No session cookie")
 
-#         stored_hashed_password = user_doc.to_dict().get("password")
-
-#         # Step 2: Hash the incoming password and compare with the stored hashed password
-#         if bcrypt.checkpw(user_auth.password.encode('utf-8'), stored_hashed_password.encode('utf-8')):
-#             # Step 3: Generate session cookie
-#             print("login!!")
-#             custom_token = auth.create_custom_token(user_auth.uid)
-#             print(custom_token)
-#             session_cookie = auth.create_session_cookie(custom_token, expires_in=SESSION_EXPIRE_TIME)
-
-#             # Step 3: Set session cookie in the response
-#             response.set_cookie(
-#                 key="session",
-#                 value=session_cookie,
-#                 httponly=True,  # Prevents JavaScript access
-#                 secure=True,    # Only send over HTTPS
-#                 max_age=SESSION_EXPIRE_TIME
-#             )
-
-#             return {"message": "Session created", "token": f"{custom_token}"}
-#         else:
-#             raise HTTPException(status_code=400, detail="Invalid credentials")
-    
-#     except Exception as e:
-#         raise HTTPException(status_code=400, detail=str(e))
-
-#Sign in ต้องมาจากฝั่ง Client call signInWithCustomToken#
+    try:
+        decoded_claims = auth.verify_session_cookie(session_cookie, check_revoked=True)
+        # print(f"{decoded_claims: }")
+        return decoded_claims
+    except auth.InvalidSessionCookieError:
+        raise HTTPException(status_code=401, detail="Session expired or invalid")
     
 @router.post("/create-session-cookie")
 async def create_session_cookie(custom_token: CustomToken, response: Response):
     try:
-        # Step 1: Verify the ID token
+        print(f"Received Token: {custom_token.id_token}")
+
+        # Step 1: Verify the custom token using Firebase's method to get an ID token
         decoded_token = auth.verify_id_token(custom_token.id_token)
+        print(f"Decoded Token: {decoded_token}")
         uid = decoded_token['uid']
 
-        # Step 2: Create a session cookie using the ID token
-        session_cookie = auth.create_session_cookie(custom_token, expires_in=SESSION_EXPIRE_TIME)
+        print(f"UID: {uid}")
 
+        # Step 2: Create the session cookie using the Firebase ID token (use the token verified above)
+        try:
+            session_cookie = auth.create_session_cookie(custom_token.id_token, expires_in=SESSION_EXPIRE_TIME)
+            print(f"{session_cookie: }")
+        except Exception as e:
+            print(e)
+
+        print(f"Session cookie: {session_cookie}")
         # Step 3: Set session cookie in the response
         response.set_cookie(
             key="session",
@@ -143,41 +126,13 @@ async def create_session_cookie(custom_token: CustomToken, response: Response):
             max_age=SESSION_EXPIRE_TIME
         )
 
-        return {"message": "Session created successfully"}
+        return {"session_cookie": session_cookie}
     
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# @router.get("/protected-route/")
-# async def protected_route(request: Request):
-#     session_cookie = request.cookies.get("session")  # Get session cookie
-
-#     if not session_cookie:
-#         return {"error": "Unauthorized"}, 401
-
-#     try:
-#         # Verify session
-#         decoded_claims = auth.verify_session_cookie(session_cookie, check_revoked=True)
-#         return {"message": "Access granted", "user_id": decoded_claims["uid"]}
-    
-#     except auth.InvalidSessionCookieError:
-#         return {"error": "Invalid session"}, 401
-
-# @app.post("/logout/{user_id}")
-# async def logout(response: Response, user_id: str):
-#     response.delete_cookie("session") 
-#     auth.revoke_refresh_tokens(user_id) ให้ฝั่ง โอ๊ตทำ
-#     return {"message": "Logged out"}
-
-
-###-------------------------ของ โอ๊ต--------------------------##
-# firebase.auth().signInWithCustomToken(customToken)
-#   .then((userCredential) => {
-#     console.log("User signed in", userCredential.user);
-#   })
-#   .catch((error) => {
-#     console.error("Login failed", error);
-#   });
-###-------------------------ของ โอ๊ต--------------------------##
-
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie("session")  # Remove session cookie
+    return {"message": "Logged out successfully"}
