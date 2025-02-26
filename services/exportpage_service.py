@@ -77,6 +77,7 @@ async def get_report_excel(patient_ids: dict, background_tasks: BackgroundTasks)
             try:  # Inner try-except for each patient
                 patient_ref = db.collection('patients').document(patient_id)
                 patient_doc = patient_ref.get()
+                
 
                 if not patient_doc.exists:
                     print(f"Patient {patient_id} not found.")  # Log, but continue with other patients
@@ -84,7 +85,6 @@ async def get_report_excel(patient_ids: dict, background_tasks: BackgroundTasks)
 
                 patient_data = convert_firestore_timestamps(patient_doc.to_dict())
                 patient_data['patient_id'] = patient_doc.id
-
                 # ... (fetch mews and notes data - same as in get_report)
                 mews_ref = db.collection('mews').where("patient_id", "==", patient_doc.id)
                 mews_docs = list(mews_ref.stream())
@@ -94,7 +94,6 @@ async def get_report_excel(patient_ids: dict, background_tasks: BackgroundTasks)
                         mews_dict = doc.to_dict()
                         mews_dict["mews_id"] = doc.id
                         mews_data.append(convert_firestore_timestamps(mews_dict))
-               
 
                 note_ref = db.collection('inspection_notes').where("patient_id", "==", patient_doc.id)
                 note_docs = list(note_ref.stream())
@@ -146,6 +145,7 @@ async def get_report_excel(patient_ids: dict, background_tasks: BackgroundTasks)
                 report_df = pd.DataFrame(report_data)
                 patient_name = patient_data['fullname'].replace(' ', '_')
                 all_reports_data[patient_name] = [report_df, is_mews_and_note_empty]
+                print(all_reports_data[patient_name])
 
             except Exception as inner_e:
                 print(f"Error processing patient {patient_id}: {inner_e}")  # Log individual patient errors

@@ -8,7 +8,7 @@ class ExcelDecorator:
     def decorate(self):
         wb = load_workbook(self.filepath)
         ws = wb.active
-        ws.delete_rows(1)
+        # ws.delete_rows(1)
 
         # Define border style (thin black lines)
         thin_border = Border(

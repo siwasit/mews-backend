@@ -164,11 +164,11 @@ async def create_session_cookie(custom_token: CustomToken, response: Response):
 #     except auth.InvalidSessionCookieError:
 #         return {"error": "Invalid session"}, 401
 
-# @app.post("/logout/{user_id}")
-# async def logout(response: Response, user_id: str):
-#     response.delete_cookie("session") 
-#     auth.revoke_refresh_tokens(user_id) ให้ฝั่ง โอ๊ตทำ
-#     return {"message": "Logged out"}
+@app.post("/logout/{user_id}")
+async def logout(response: Response, user_id: str):
+    response.delete_cookie("session") 
+    auth.revoke_refresh_tokens(user_id) 
+    return {"message": "Logged out"}
 
 
 ###-------------------------ของ โอ๊ต--------------------------##
